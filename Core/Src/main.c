@@ -60,6 +60,10 @@ static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 void DHT11_ReadData(float *temperature, float *humidity);
 uint8_t check_response(void);
+void start_signal (void);
+void delay_us ( uint16_t us);
+uint8_t read_byte(void);
+void process_sensor_data(void);
 
 char msg[50] ;
 char message1[16];
@@ -106,7 +110,7 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim1);
-  send_uart_message("Initilization complet \n\r");
+  printf("Initilization complet \n\r");
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -124,10 +128,12 @@ int main(void)
 
     // wait for 1 second
     HAL_Delay(1000);
+    start_signal();
     uint8_t check = check_response();
 	  if (!check){
-		  send_uart_message("No responce from the sensor \r\n");
+		  printf("No responce from the sensor \r\n");
 	  } else {
+		  printf("process sensor data \r\n");
 		  process_sensor_data();
 	  }
 
@@ -529,11 +535,31 @@ void DHT11_ReadData(float *temperature, float *humidity)
     printf("DHT11 data read complete.\r\n");
 }
 
+void start_signal (void){
+     GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+
+      GPIO_InitStruct.Pin = DHT11_GPIO_PIN;
+      GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+      GPIO_InitStruct.Pull = GPIO_NOPULL;
+      GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+      HAL_GPIO_Init(DHT11_GPIO_PORT, &GPIO_InitStruct);
+
+      HAL_GPIO_WritePin(DHT11_GPIO_PORT, DHT11_GPIO_PIN, GPIO_PIN_RESET);
+      HAL_Delay(18);
+      HAL_GPIO_WritePin(DHT11_GPIO_PORT, DHT11_GPIO_PIN, GPIO_PIN_SET);
+      delay_us(30);
+
+      GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+      HAL_GPIO_Init(DHT11_GPIO_PORT, &GPIO_InitStruct);
+
+}
 void delay_us ( uint16_t us)
 {
     __HAL_TIM_SET_COUNTER(&htim1,0);
     while(__HAL_TIM_GET_COUNTER(&htim1) < us);
 }
+
 
 uint8_t check_response(void){
     TOUT=0;
@@ -579,19 +605,17 @@ void process_sensor_data(void){
 
     if(CheckSum ==((RH_Byte1+RH_Byte2 +T_Byte1+T_Byte2)& 0xff)){
         snprintf(msg,sizeof(msg),"RH = %d.%d %%\r\n",humidity_integer,humidity_decimal);
-        send_uart_message(msg);
+        printf(msg);
         snprintf(msg,sizeof(msg),"temp = %d.%d C\r\n",temperature_integer,temperature_decimal);
-        send_uart_message(msg);
+        printf(msg);
 
     }else
     {
-        send_uart_message("Checksum Errors ! Trying Again ...\r\n");
+        printf("Checksum Errors ! Trying Again ...\r\n");
     }
 }
 
-void send_uart_message(char *messsage){
-    HAL_UART_Transmit(&huart2, (uint8_t*)messsage, strlen(messsage), HAL_MAX_DELAY);
-}
+
 #ifdef  USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
