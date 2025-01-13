@@ -59,6 +59,7 @@ static void MX_USART2_UART_Init(void);
 static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 void DHT11_ReadData(float *temperature, float *humidity);
+uint8_t check_response(void);
 
 char msg[50] ;
 char message1[16];
@@ -123,7 +124,7 @@ int main(void)
 
     // wait for 1 second
     HAL_Delay(1000);
-    int check = check_response();
+    uint8_t check = check_response();
 	  if (!check){
 		  send_uart_message("No responce from the sensor \r\n");
 	  } else {
@@ -534,7 +535,7 @@ void delay_us ( uint16_t us)
     while(__HAL_TIM_GET_COUNTER(&htim1) < us);
 }
 
-int check_response(void){
+uint8_t check_response(void){
     TOUT=0;
     __HAL_TIM_SET_COUNTER(&htim1,0);
     while(!HAL_GPIO_ReadPin(DHT11_GPIO_PORT, DHT11_GPIO_PIN) && (__HAL_TIM_GET_COUNTER(&htim1) < 100)) {};
